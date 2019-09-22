@@ -1,4 +1,4 @@
-name: copiar_tutorial_1
+name: flight_app
 description: A new Flutter project.
 
 # The following defines the version and build number for your application.
@@ -21,7 +21,11 @@ dependencies:
     sdk: flutter
   flutter_bloc: ^0.18.3
   intl:
+  cloud_firestore: ^0.12.1
   
+  
+  cached_network_image: ^1.1.1
+  rxdart: ^0.22.2
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -60,11 +64,10 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
-  #       - asset: fonts/Schyler-Italic.ttf
+  fonts:
+    - family: Patua One
+      fonts:
+        - asset: assets/fonts/PatuaOne-Regular.ttf
   #         style: italic
   #   - family: Trajan Pro
   #     fonts:

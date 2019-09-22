@@ -1,4 +1,4 @@
-import 'package:copiar_tutorial_1/main.dart';
+import 'package:flight_app/main.dart';
 import 'package:flutter/material.dart';
 
 class CustomAppBar extends StatelessWidget {

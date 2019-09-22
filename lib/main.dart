@@ -1,8 +1,13 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+// import 'package:firebase_core/firebase_core.dart';
+
 import 'CustomAppBar.dart';
 import 'CustomShapeClipper.dart';
+import 'flight_list.dart';
 
 void main() => runApp(MaterialApp(
       title: "flight list mockup",
@@ -11,24 +16,28 @@ void main() => runApp(MaterialApp(
       theme: appTheme,
     ));
 
-Color firstColor = Color(0xFFF00000);
+Color firstColor = Color(0xFFF47D15);
 Color secondColor = Color(0xFFEF772C);
 
 ThemeData appTheme =
     ThemeData(primaryColor: Color(0xFFF3791A), fontFamily: 'Oxygen');
 
-List<String> locations = ['Boston (BOS)', 'New York (JFK)'];
+List<String> locations = List();
 
 class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var scaffold = Scaffold(
       bottomNavigationBar: CustomAppBar(),
-      body: Column(
-        children: <Widget>[
-          HomeScreenTopPart(),
-          homeScreenBottomPart,
-        ],
+      body: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        child: Column(
+          children: <Widget>[
+            HomeScreenTopPart(),
+            homeScreenBottomPart,
+            homeScreenBottomPart,
+          ],
+        ),
       ),
     );
     return scaffold;
@@ -39,6 +48,8 @@ const TextStyle dropDownLabelStyle =
     TextStyle(color: Colors.white, fontSize: 16.0);
 const TextStyle dropDownMenuStyle =
     TextStyle(color: Colors.black, fontSize: 16.0);
+
+final searchFieldController = TextEditingController();
 
 class HomeScreenTopPart extends StatefulWidget {
   @override
@@ -65,66 +76,60 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
             child: Column(
               children: <Widget>[
                 SizedBox(height: 50.0),
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: <Widget>[
-                      Icon(
-                        Icons.location_on,
-                        color: Colors.white,
-                      ),
-                      SizedBox(width: 16.0),
-                      PopupMenuButton(
-                        onSelected: (index) {
-                          setState(() {
-                            selectedLocationIndex = index;
-                          });
-                        },
-                        child: Row(
-                          children: <Widget>[
-                            Text(locations[selectedLocationIndex],
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 16.0)),
-                            Icon(
-                              Icons.keyboard_arrow_down,
-                              color: Colors.white,
-                            )
-                          ],
-                        ),
-                        itemBuilder: (BuildContext context) =>
-                            <PopupMenuItem<int>>[
-                          PopupMenuItem(
-                              child: Text(
-                                locations[0],
-                                style: dropDownMenuStyle,
+                StreamBuilder(
+                    stream:
+                        Firestore.instance.collection('locations').snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData)
+                        addLocations(context, snapshot.data.documents);
+
+                      return !snapshot.hasData
+                          ? Container()
+                          : Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Row(
+                                children: <Widget>[
+                                  Icon(
+                                    Icons.location_on,
+                                    color: Colors.white,
+                                  ),
+                                  SizedBox(width: 16.0),
+                                  PopupMenuButton(
+                                    onSelected: (index) {
+                                      setState(() {
+                                        selectedLocationIndex = index;
+                                      });
+                                    },
+                                    child: Row(
+                                      children: <Widget>[
+                                        Text(locations[selectedLocationIndex],
+                                            style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 16.0)),
+                                        Icon(
+                                          Icons.keyboard_arrow_down,
+                                          color: Colors.white,
+                                        )
+                                      ],
+                                    ),
+                                    itemBuilder: (BuildContext context) => _buildPopupMenuItem(),
+                                  ),
+                                  Spacer(),
+                                  Icon(
+                                    Icons.settings,
+                                    color: Colors.white,
+                                  )
+                                ],
                               ),
-                              value: 0
-                              //dropDownMenuStyle
-                              ),
-                          PopupMenuItem(
-                              child: Text(
-                                locations[1],
-                                style: dropDownMenuStyle,
-                              ),
-                              value: 1
-                              //dropDownMenuStyle
-                              ),
-                        ],
-                      ),
-                      Spacer(),
-                      Icon(
-                        Icons.settings,
-                        color: Colors.white,
-                      )
-                    ],
-                  ),
-                ),
+                            );
+                    }),
                 SizedBox(
-                  height: 20,
+                  height: 50,
                 ),
                 Text(
                   'Where would\n you want to go?',
-                  style: TextStyle(color: Colors.white, fontSize: 24.0),
+                  style: TextStyle(
+                      color: Colors.white, fontSize: 24.0, fontFamily: 'Arial'),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(
@@ -137,7 +142,7 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
                     borderRadius: BorderRadius.all(Radius.circular(30.0)),
                     child: TextField(
                       style: dropDownMenuStyle,
-                      controller: TextEditingController(text: locations[1]),
+                      controller: searchFieldController,
                       cursorColor: appTheme.primaryColor,
                       decoration: InputDecoration(
                         contentPadding: EdgeInsets.symmetric(
@@ -146,9 +151,24 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
                         suffixIcon: Material(
                           elevation: 2.0,
                           borderRadius: BorderRadius.all(Radius.circular(30.0)),
-                          child: Icon(
-                            Icons.search,
-                            color: Colors.black,
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        InheritedFlightListing(
+                                      fromLocation:
+                                          locations[selectedLocationIndex],
+                                      toLocation: searchFieldController.text,
+                                      child: FlightListingScreen(),
+                                    ),
+                                  ));
+                            },
+                            child: Icon(
+                              Icons.search,
+                              color: Colors.black,
+                            ),
                           ),
                         ),
                       ),
@@ -193,6 +213,32 @@ class _HomeScreenTopPartState extends State<HomeScreenTopPart> {
         ),
       ],
     );
+  }
+}
+
+List<PopupMenuItem<int>> _buildPopupMenuItem() {
+  List<PopupMenuItem<int>> popUpMenuItems = List();
+
+  for (int i = 0; i < locations.length; i++) {
+    popUpMenuItems.add(
+      PopupMenuItem(
+        child: Text(
+          locations[i],
+          style: dropDownMenuStyle,
+        ),
+        value: i,
+        //dropDownMenuStyle
+      ),
+    );
+  }
+
+  return popUpMenuItems;
+}
+
+addLocations(BuildContext context, List<DocumentSnapshot> snapshots) {
+  for (int i = 0; i < snapshots.length; i++) {
+    final location = Location.fromSnapshot(snapshots[i]);
+    locations.add(location.name);
   }
 }
 
@@ -265,62 +311,71 @@ var homeScreenBottomPart = Column(
       ),
     ),
     Container(
-      height: 210.0,
+      height: 170.0,
       // color: Colors.blue,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: cityCards,
+      child: StreamBuilder(
+        stream: Firestore.instance
+            .collection('cities')
+            .orderBy('newPrice')
+            .snapshots(),
+        builder: (context, snapshot) {
+          print(snapshot);
+          return !snapshot.hasData
+              ? Center(child: CircularProgressIndicator())
+              : _buildCitiesList(context, snapshot.data.documents);
+        },
       ),
     ),
   ],
 );
 
-List<CityCard> cityCards = [
-  CityCard(
-    imagePath: "assets/images/lasvegas.jpg",
-    cityName: "Las Vegas",
-    monthYear: "abr 2019",
-    oldPrice: 45,
-    newPrice: 5444,
-    discount: "50",
-  ),
-  CityCard(
-    imagePath: "assets/images/athens.jpg",
-    cityName: "Atenas",
-    monthYear: "feb 2019",
-    oldPrice: 43,
-    newPrice: 1234,
-    discount: "20",
-  ),
-  CityCard(
-    imagePath: "assets/images/sydney.jpeg",
-    cityName: "Sidney",
-    monthYear: "mar 2019",
-    oldPrice: 354,
-    newPrice: 1234,
-    discount: "30",
-  ),
-];
+Widget _buildCitiesList(
+    BuildContext context, List<DocumentSnapshot> snapshots) {
+  return ListView.builder(
+    itemCount: snapshots.length,
+    scrollDirection: Axis.horizontal,
+    itemBuilder: (context, index) {
+      return CityCard(city: City.fromSnapshot(snapshots[index]));
+    },
+  );
+}
+
+class Location {
+  final String name;
+
+  Location.fromMap(Map<String, dynamic> map)
+      : assert(map['name'] != null),
+        name = map['name'];
+
+  Location.fromSnapshot(DocumentSnapshot snapshot)
+      : this.fromMap(snapshot.data);
+}
+
+class City {
+  final String imagePath, cityName, monthYear, discount;
+  final int oldPrice, newPrice;
+
+  City.fromMap(Map<String, dynamic> map)
+      : assert(map['cityName'] != null),
+        assert(map['monthYear'] != null),
+        assert(map['discount'] != null),
+        assert(map['imagePath'] != null),
+        imagePath = map['imagePath'],
+        cityName = map['cityName'],
+        monthYear = map['monthYear'],
+        discount = map['discount'],
+        oldPrice = map['oldPrice'],
+        newPrice = map['newPrice'];
+
+  City.fromSnapshot(DocumentSnapshot snapshot) : this.fromMap(snapshot.data);
+}
 
 final formatCurrency = NumberFormat.simpleCurrency();
 
 class CityCard extends StatelessWidget {
-  final String imagePath;
-  final String cityName;
-  final String monthYear;
-  final String discount;
-  final int oldPrice;
-  final int newPrice;
+  final City city;
 
-  const CityCard(
-      {Key key,
-      this.imagePath,
-      this.cityName,
-      this.monthYear,
-      this.discount,
-      this.oldPrice,
-      this.newPrice})
-      : super(key: key);
+  const CityCard({Key key, this.city}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -334,19 +389,21 @@ class CityCard extends StatelessWidget {
           child: Stack(
             children: <Widget>[
               Container(
-                height: 210,
+                height: 150,
                 width: 160,
-                child: Image.asset(
-                  imagePath,
+                child: CachedNetworkImage(
+                  imageUrl: city.imagePath,
                   fit: BoxFit.cover,
+                  fadeInDuration: Duration(milliseconds: 500),
+                  fadeInCurve: Curves.easeIn,
+                  //  placeholder: CircularProgressIndicator(),
                 ),
-                // color: Colors.red,
               ),
               Positioned(
                 left: 0.0,
                 bottom: 0.0,
                 width: 160,
-                height: 60,
+                height: 40,
                 child: Container(
                   // color: Colors.black,
                   decoration: BoxDecoration(
@@ -369,14 +426,14 @@ class CityCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            cityName,
+                            city.cityName,
                             style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
                                 fontSize: 18.0),
                           ),
                           Text(
-                            monthYear,
+                            city.monthYear,
                             style: TextStyle(
                                 fontWeight: FontWeight.normal,
                                 color: Colors.white,
@@ -390,7 +447,7 @@ class CityCard extends StatelessWidget {
                           shape: BoxShape.rectangle,
                           borderRadius: BorderRadius.all(Radius.circular(10))),
                       child: Text(
-                        "$discount%",
+                        '${city.discount}%',
                         style: TextStyle(fontSize: 14.0, color: Colors.black),
                       ),
                     ),
@@ -408,7 +465,7 @@ class CityCard extends StatelessWidget {
               width: 5,
             ),
             Text(
-              '${formatCurrency.format(newPrice)}',
+              '${formatCurrency.format(city.newPrice)}',
               style:
                   TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
             ),
@@ -416,9 +473,11 @@ class CityCard extends StatelessWidget {
               width: 5,
             ),
             Text(
-              '(${formatCurrency.format(oldPrice)})',
-              style:
-                  TextStyle(color: Colors.grey, fontWeight: FontWeight.normal),
+              '(${formatCurrency.format(city.oldPrice)})',
+              style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.normal,
+                  decoration: TextDecoration.lineThrough),
             ),
           ],
         ),
